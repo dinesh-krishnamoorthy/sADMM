@@ -100,7 +100,7 @@ while dLambda>0.02 && k<30
     k = k+1;
     x_opt = [];
     
-    if k>=1 
+    if k==1 
         % ---------- Solve subproblem NLP -----------
         for i = 1:N
             blk = (i-1)*nw+1:i*nw;
