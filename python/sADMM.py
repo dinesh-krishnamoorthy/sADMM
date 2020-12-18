@@ -7,6 +7,7 @@ opts = {}
 opts["print_time"] = False
 opts["ipopt"] = dict(print_level=1)
 
+
 def MLP(u,w,nu,nn,ny):
 
     w1 = w[0:nu*nn]
