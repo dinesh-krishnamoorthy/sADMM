@@ -1,18 +1,16 @@
 close all
 addpath(genpath(pwd))
 
-NLP = load('data/dataC.mat');
-ADMM = load('data/data_ADMM.mat');
-sADMM = load('data/data_sADMM.mat');
+ADMM = load('data/data_ADMM_l1_dist.mat');
+sADMM = load('data/data_sADMM_l1_dist.mat');
 
 figure(1)
 clf
 set(gca,'FontSize',14) 
 hold all
-plot(NLP.sol_data.y,NLP.sol_data.y,'k','linewidth',2)
-plot(NLP.sol_data.y,NLP.sol_data.y_pred,'o','color',[0.0,0.45,0.74])
-plot(NLP.sol_data.y,ADMM.sol_data.y_pred,'.','color',[0.85,0.33,0.1],'markersize',10)
-plot(NLP.sol_data.y,sADMM.sol_data.y_pred,'.','color',[0.93,0.69,0.13])
+plot(ADMM.sol_data.y,ADMM.sol_data.y,'k','linewidth',2)
+plot(ADMM.sol_data.y,ADMM.sol_data.y_pred,'o','color',[0.0,0.45,0.74])
+plot(ADMM.sol_data.y,sADMM.sol_data.y_pred,'.','color',[0.85,0.33,0.1])
 xlabel('True value $y$','Interpreter','latex')
 ylabel('Predicted value $\hat{y}$','Interpreter','latex')
 box on
@@ -59,6 +57,17 @@ xticks([1,5:5:30])
 
 figure(3)
 clf
-semilogy(NLP.sol_data.sol_t)
+
+semilogy(ADMM.sol_data.sol_t,'linewidth',2)
 hold all
-semilogy(sADMM.sol_data.sol_t,'--')
+semilogy(sADMM.sol_data.sol_t,'--','linewidth',2)
+legend('ADMM','sADMM','Interpreter','latex','location','best')
+box on
+axs = gca;
+axs.TickLabelInterpreter = 'latex';
+set(gca,'yscale','log')
+xlim([1,30])
+xticks([1,5:5:30])
+xlabel('Iternation no. $k$','Interpreter','latex')
+ylabel('CPU time [s]','Interpreter','latex')
+set(gca,'FontSize',14) 
