@@ -133,7 +133,7 @@ def consensus_reg_nn(nw,N,rho,opts = opts):
         
         L = L + mtimes(transpose(lam),(x-x0)) + rho/2*sumsqr(x-x0)
 
-    L = L + 0.01*sumsqr(x0)
+    L = L + 1*sumsqr(x0)
     # Formulate QP
     nlp = {'x':x0, 'p':vertcat(*lam_i,*x_i),'f':L ,'g':[]}
 
@@ -152,6 +152,8 @@ def ADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50)
     Lam0 = vertcat(*Lam)  
     k = 0
     
+    r_primal = []
+    r_dual = []
     while dLambda>tol and k<=MaxIter:
         k = k+1
         x_opt = []
@@ -161,6 +163,7 @@ def ADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50)
             xi_opt,_,_ = solvenlp(solvers[i],nlps[i],vertcat(Lam[i],x0_opt))
             x_opt.append(xi_opt)
 
+        x0_opt0 = x0_opt
         # solve Direction 2
         x0_opt,_,_ = solvenlp(solver0,nlp0,vertcat(*Lam,*x_opt))
         
@@ -171,7 +174,12 @@ def ADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50)
         dLambda = norm(Lam0  - vertcat(*Lam))
         Lam0 = vertcat(*Lam)
 
-    return x0_opt,x_opt,dLambda
+        res = 0
+        for i in range(0,len(solvers)):
+            res += np.linalg.norm(x_opt[i]-x0_opt)
+        r_primal.append(res)
+        r_dual.append(np.linalg.norm(rho*(x0_opt-x0_opt0)))
+    return x0_opt,x_opt,dLambda,r_primal,r_dual
 
 
 def get_sensitivities_constraints(p_val,Primal,Dual,par):
@@ -217,8 +225,9 @@ def get_sensitivities(par):
 
     Lpx = Function('Lpx',[w,p],[jacobian(jacobian(Lagr_func,p),w)],['w','p'],['Lpw'])
     H = Function('H',[w,p],[jacobian(jacobian(Lagr_func,w),w)],['w','p'],['Lww'])
+    Lx = Function('Lx',[w,p],[jacobian(Lagr_func,w)],['w','p'],['Lpw'])
     
-    return H,Lpx
+    return H,Lpx,Lx
 
 def predictor_tangent(Primal,Dual,p_init,p_final,par):
     
@@ -226,7 +235,7 @@ def predictor_tangent(Primal,Dual,p_init,p_final,par):
     ng = Dual['lam_g'].shape[0]
 
     dp = (p_final-p_init)
-    H,Lpx = get_sensitivities(par)
+    H,Lpx,Lx = get_sensitivities(par)
     
     H = H(Primal,p_init)
     Lpx = Lpx(Primal,p_init)
@@ -240,53 +249,70 @@ def predictor_tangent(Primal,Dual,p_init,p_final,par):
     Dual['lam_g'] = Delta_s[nw:nw+ng]
     Dual['lam_x'] = Delta_s[nw+ng:nw+ng+nw]
     
-    return dPrimal, Dual
+    return dPrimal, Dual, Lx
 
-def sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50):
+def sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50,):
     
     assert len(solvers) == len(nlps)
     # assert x0_opt is the same size as nlps[i].w0
     dLambda = 100 # inital large dLambda
     Lam0 = vertcat(*Lam)  
     k = 0
-    
+
+    r_primal = [20]
+    r_dual = [20]
+    r_app = [200]
+
     while dLambda>tol and k<=MaxIter:
         k = k+1
         
         # Solve Direction 1
-        if k <= 1:
+        if r_dual[k-1]>5 and r_primal[k-1]>10:
             x_opt = []
             dual = []
-            p_init = []
-            p_final = []
+            eps=[]
             for i in range(0,len(solvers)):
                 xi_opt,duali_opt,_ = solvenlp(solvers[i],nlps[i],vertcat(Lam[i],x0_opt))
                 x_opt.append(xi_opt)
                 dual.append(duali_opt)
-                p_init.append(vertcat(Lam[i],x0_opt))
+                eps.append(0)
             
         else:
-            for i in range(0,len(solvers)):
-                p_final.append(vertcat(Lam[i],x0_opt))
                 
             for i in range(0,len(solvers)):
-                dPrimal, duali_opt = predictor_tangent(x_opt[i],dual[i],p_init[i],p_final[i],nlps[i])
+                dPrimal, duali_opt,Lx = predictor_tangent(x_opt[i],dual[i],p_init[i],p_final[i],nlps[i])
                 xi_opt = x_opt[i] + dPrimal
                 x_opt[i] = xi_opt
-                dual[i] = duali_opt
-                p_init[i] = p_final[i]     
-            
+                dual[i] = duali_opt    
+                eps[i] = np.linalg.norm(Lx(x_opt[i],p_final[i]))
+        
+        p_init = []
+        for i in range(0,len(solvers)):
+            p_init.append(vertcat(Lam[i],x0_opt))
+
+        x0_opt0 = x0_opt
         # solve Direction 2
         x0_opt,_,_ = solvenlp(solver0,nlp0,vertcat(*Lam,*x_opt))
-        
+
         # Update Lagrange multipliers
         for i in range(0,len(solvers)):
             Lam[i] += rho*(x_opt[i] - x0_opt)
 
+        p_final = []
+        for i in range(0,len(solvers)):
+            p_final.append(vertcat(Lam[i],x0_opt))
+
         dLambda = norm(Lam0  - vertcat(*Lam))
         Lam0 = vertcat(*Lam)
 
-    return x0_opt,x_opt
+        res = 0
+        for i in range(0,len(solvers)):
+            res += np.linalg.norm(x_opt[i]-x0_opt)
+        r_primal.append(res)
+        r_dual.append(np.linalg.norm(rho*(x0_opt-x0_opt0)))
+        r_app.append(np.linalg.norm(eps))
+
+    return x0_opt,x_opt,r_primal,r_dual,r_app
 
 
 def stochastic_sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50,delta = 0.5):
@@ -297,6 +323,8 @@ def stochastic_sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3
     Lam0 = vertcat(*Lam)  
     k = 0
     
+    r_primal = [20]
+    r_dual = [20]
     while dLambda>tol and k<=MaxIter:
         k = k+1
         
@@ -307,7 +335,7 @@ def stochastic_sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3
             nlp = False
 
         # Solve Direction 1
-        if nlp:
+        if r_primal[k-1]>1 or nlp :
             x_opt = []
             dual = []
             p_init = []
@@ -316,19 +344,19 @@ def stochastic_sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3
                 xi_opt,duali_opt,_ = solvenlp(solvers[i],nlps[i],vertcat(Lam[i],x0_opt))
                 x_opt.append(xi_opt)
                 dual.append(duali_opt)
-                p_init.append(vertcat(Lam[i],x0_opt))
             
         else:
-            for i in range(0,len(solvers)):
-                p_final.append(vertcat(Lam[i],x0_opt))
-                
             for i in range(0,len(solvers)):
                 dPrimal, duali_opt = predictor_tangent(x_opt[i],dual[i],p_init[i],p_final[i],nlps[i])
                 xi_opt = x_opt[i] + dPrimal
                 x_opt[i] = xi_opt
-                dual[i] = duali_opt
-                p_init[i] = p_final[i]     
-            
+                dual[i] = duali_opt   
+        
+        p_init = []
+        for i in range(0,len(solvers)):
+            p_init.append(vertcat(Lam[i],x0_opt))
+
+        x0_opt0 = x0_opt
         # solve Direction 2
         x0_opt,_,_ = solvenlp(solver0,nlp0,vertcat(*Lam,*x_opt))
         
@@ -336,7 +364,16 @@ def stochastic_sADMM_consensus(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3
         for i in range(0,len(solvers)):
             Lam[i] += rho*(x_opt[i] - x0_opt)
 
+        p_final = []
+        for i in range(0,len(solvers)):
+            p_final.append(vertcat(Lam[i],x0_opt))
+
         dLambda = norm(Lam0  - vertcat(*Lam))
         Lam0 = vertcat(*Lam)
 
-    return x0_opt,x_opt
+        res = 0
+        for i in range(0,len(solvers)):
+            res += np.linalg.norm(x_opt[i]-x0_opt)
+        r_primal.append(res)
+        r_dual.append(np.linalg.norm(rho*(x0_opt-x0_opt0)))
+    return x0_opt,x_opt,r_primal,r_dual

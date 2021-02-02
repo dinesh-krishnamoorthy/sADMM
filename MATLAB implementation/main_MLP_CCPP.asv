@@ -13,8 +13,8 @@ addpath(genpath(pwd))
 
 load('CCPP.mat')
 data = normalize(data);
-x = data(:,1:4);
-y = data(:,5);
+x = data(1:40,1:4);
+y = data(1:40,5);
 rng(1)
 
 %% Design Multilayer perceptron architecture
@@ -42,6 +42,11 @@ w_opt = full(sol.x);
 % Compare predicted Vs. True value
 y_pred0 = MLP(x,w_opt,nu,nn,ny);
 y_pred0 = y_pred0';
+
+figure(12)
+hold all
+plot(y,y,'r')
+plot(y,y_pred0,'.')
 
 e0.abs = abs(y_pred0 - y);
 e0.max = max(e0.abs);
@@ -175,10 +180,11 @@ x2_opt = x_opt(nw+1:2*nw);
 x3_opt = x_opt(2*nw+1:3*nw);
 x4_opt = x_opt(3*nw+1:4*nw);
 
-xOpt = (x0_opt+x1_opt+x2_opt+x3_opt+x4_opt)/5;
+x_opt = (x0_opt+x1_opt+x2_opt+x3_opt+x4_opt)/5;
 
+plot(y,y_pred,'.')
 % Compare predicted Vs. True value
-y_pred = MLP(x,xOpt,nu,nn,ny);
+y_pred = MLP(x,x_opt,nu,nn,ny);
 y_pred = y_pred';
 err.abs = abs(y_pred - y);
 err.max = max(e0.abs);
@@ -188,6 +194,7 @@ err.mse = mean((y_pred-y).^2);
 SStot = sum((y - mean(y)).^2);
 SSres = sum((y-y_pred).^2);
 err.r2 = 1 - SSres/SStot;
+
 
 
 % save data from fully centralized learning
