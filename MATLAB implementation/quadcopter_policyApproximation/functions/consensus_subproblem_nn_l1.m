@@ -24,7 +24,7 @@ ubg = [];
 L = 0;
 
 for i = 1:D
-L =   L + (MLP(u(i,:),x,nu,nn,ny) - y(i)).^2;
+L =   L + sum((MLP(u(i,:),x,nu,nn,ny) - y(i,:)').^2);
 end
 L =  L + rho/2*sum((x-x0 + lam).^2);
 
@@ -37,4 +37,3 @@ nlp = struct('x',x, 'p',vertcat(lam,x0),'f',L ,'g',[]);
 solver = nlpsol('solver', 'ipopt', nlp,opts);
 
 par = struct('w0',w0,'lbw',lbw,'ubw',ubw,'lbg',lbg, 'ubg',ubg,'nlp',nlp);
-par = PrepareLinSys(par);

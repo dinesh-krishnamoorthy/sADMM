@@ -1,4 +1,4 @@
-function [solver,par] = consensus_subproblem_nn_l1(u,y,nn,rho)
+function [solver,par] = consensus_subproblem_nn(u,y,nn,rho)
 
 % Written by: Dinesh Krishnamoorthy, Apr 2020
 
@@ -26,7 +26,7 @@ L = 0;
 for i = 1:D
 L =   L + (MLP(u(i,:),x,nu,nn,ny) - y(i)).^2;
 end
-L =  L + rho/2*sum((x-x0 + lam).^2);
+L =  L + lam'*(x-x0) + rho/2*sum((x-x0).^2);
 
 opts = struct('warn_initial_bounds',false, ...
     'print_time',false, ...
@@ -37,4 +37,3 @@ nlp = struct('x',x, 'p',vertcat(lam,x0),'f',L ,'g',[]);
 solver = nlpsol('solver', 'ipopt', nlp,opts);
 
 par = struct('w0',w0,'lbw',lbw,'ubw',ubw,'lbg',lbg, 'ubg',ubg,'nlp',nlp);
-par = PrepareLinSys(par);

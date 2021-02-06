@@ -6,23 +6,16 @@ import casadi.*
 
 dp = (p_final-p_init);
 
-[H,Lpx]= PrepareLinSys(par);
-
-H = H(Primal,p_init);
-Lpx = Lpx(Primal,p_init);
+H = par.H(Primal,p_init);
+Lpx = par.Lpx(Primal,p_init);
 
 M = H;
 N= Lpx'*dp;
 
 tic
-Delta_s = sparse(M)\-sparse(N);
+sol.dx = full(sparse(M)\-sparse(N));
 elapsedqp = toc;
 
-sol.dx = Delta_s;
-
-if isnan(sol.dx)
-    disp('NaN detected')
-end
-
+assert(sum(isnan(sol.dx))==0,'Error: NaN detected in SolveLinSysOnline.')
 end
 

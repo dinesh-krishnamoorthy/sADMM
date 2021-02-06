@@ -1,17 +1,16 @@
-function [solver,par] = consensus_subproblem_nn_l1(u,y,nn,rho)
+function [solver,par] = consensus_classification_subproblem(u,y,nn,nc,rho)
 
 % Written by: Dinesh Krishnamoorthy, Apr 2020
 
 import casadi.*
 
 [D,nu] = size(u);
-[D,ny] = size(y);
 
-nw =  nu*nn+nn+ny*nn+ny;
+nw =  nu*nn+nn+nc*nn+nc;
 x = MX.sym('x',nw);
 
-lbw = -1e10*ones(nw,1);
-ubw = 1e10*ones(nw,1);
+lbw = -Inf*ones(nw,1);
+ubw = Inf*ones(nw,1);
 w0 = 0*ones(nw,1);
 
 
@@ -24,7 +23,8 @@ ubg = [];
 L = 0;
 
 for i = 1:D
-L =   L + (MLP(u(i,:),x,nu,nn,ny) - y(i)).^2;
+    I = indicator(y(i),nc);
+    L = L - I'*log(MLP_sigmoid(u(i,:),x,nu,nn,nc));
 end
 L =  L + rho/2*sum((x-x0 + lam).^2);
 
