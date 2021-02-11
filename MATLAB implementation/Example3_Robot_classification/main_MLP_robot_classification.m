@@ -48,6 +48,7 @@ y3 = y(2*nblock+1:3*nblock,:); y4 = y(3*nblock+1:4*nblock,:);
 
 % -------- setup ADMM ---------
 exact = 0;
+SsADMM  = 1;
 rho = 100; % penalty term in the Augmented Lagrangian
 MaxIter = 30; % Max no. of ADMM iterations
 
@@ -74,7 +75,13 @@ while k<MaxIter
     k = k+1;
     x_opt = [];
     
-    if r_dual(k)>150 || r_primal(k)>2 || exact
+    if SsADMM
+        cond = rand<0.8^(k-1);
+    else
+        cond = r_dual(k)>150 || r_primal(k)>2;
+    end
+    
+    if  cond || exact
         % ---------- Solve subproblem NLP -----------
         for i = 1:N
             blk = (i-1)*nw+1:i*nw;
@@ -111,7 +118,7 @@ while k<MaxIter
             dPrimal(:,i) = sol1.dx;
             x_opt = [x_opt; Primal(:,i)+sol1.dx];
             p_init(:,i) = p;
-            r_eps(k+1) = norm(full(par(i).Lx( Primal(:,i)+sol1.dx,p)));
+            r_eps(k) = norm(full(par(i).Lx( Primal(:,i)+sol1.dx,p)));
             AL(k) =  sum(full(par(i).L(Primal(:,i)+sol1.dx,p)));
         end
         
@@ -173,14 +180,17 @@ sol_data.NLP_flag = NLP_flag;
 sol_data.r_eps = r_eps;
 sol_data.AL = AL;
 
-if exact
+if SsADMM
+    save('data/data_SsADMM.mat','sol_data');
+elseif exact
     save('data/data_ADMM.mat','sol_data');
 else
     save('data/data_sADMM.mat','sol_data');
 end
-
+% 
 
 %%
-ADMM = load('data/data_ADMM.mat');
-sADMM = load('data/data_sADMM.mat');
-plotscript(ADMM,sADMM)
+ADMM = load([directory '/data/data_ADMM.mat']);
+sADMM = load([directory '/data/data_sADMM.mat']);
+SsADMM = load([directory '/data/data_SsADMM.mat']);
+plotscript(ADMM,sADMM,SsADMM)

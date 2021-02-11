@@ -33,7 +33,7 @@ opts = struct('warn_initial_bounds',false, ...
     'ipopt',struct('print_level',1)...
     );
 
-nlp = struct('x',x, 'p',vertcat(lam,x0),'f',L ,'g',[]);
+nlp = struct('x',x, 'p',vertcat(lam,x0),'f',L/D ,'g',[]);
 solver = nlpsol('solver', 'ipopt', nlp,opts);
 
 par = struct('w0',w0,'lbw',lbw,'ubw',ubw,'lbg',lbg, 'ubg',ubg,'nlp',nlp);
