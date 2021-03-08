@@ -112,7 +112,7 @@ def consensus_subproblem_nn_l1(u,y,nn,rho,opts = opts):
 def soft_threshold(a,kappa):
     return np.maximum(0,a-kappa) - np.maximum(0,-a-kappa)
 
-def ADMM_consensus_l1(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50):
+def ADMM_consensus_l1(solvers,nlps,x0_opt,Lam,rho,tol=1e-3,MaxIter=50):
     
     assert len(solvers) == len(nlps)
     # assert x0_opt is the same size as nlps[i].w0
@@ -153,7 +153,7 @@ def ADMM_consensus_l1(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=
         r_dual.append(np.linalg.norm(rho*(x0_opt-x0_opt0)))
     return x0_opt,x_opt,dLambda,r_primal,r_dual
 
-def sADMM_consensus_l1(solvers,nlps,solver0,nlp0,x0_opt,Lam,rho,tol=1e-3,MaxIter=50,):
+def sADMM_consensus_l1(solvers,nlps,x0_opt,Lam,rho,tol=1e-3,MaxIter=50,):
     
     assert len(solvers) == len(nlps)
     # assert x0_opt is the same size as nlps[i].w0
