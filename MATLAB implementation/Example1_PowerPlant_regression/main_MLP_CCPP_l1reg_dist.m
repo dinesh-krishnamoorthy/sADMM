@@ -45,8 +45,8 @@ y3 = y(2*nblock+1:3*nblock,:); y4 = y(3*nblock+1:4*nblock,:);
 
 
 % -------- setup ADMM ---------
-exact = 0;
-SsADMM = 1;
+exact = 0; % 1 - ADMM
+SsADMM = 0; % 0 - use sADMM; 1 - use SsADMM
 
 rho = 100; % penalty term in the Augmented Lagrangian
 MaxIter = 30; % Max no. of ADMM iterations
@@ -71,6 +71,7 @@ k = 0;
 r_dual = 51;
 r_primal = 0.11;
 r_eps = 0;
+
 while k<MaxIter
     k = k+1;
     x_opt = [];
@@ -106,24 +107,25 @@ while k<MaxIter
         end
         AL(k) = sum(L);
     else
-        % ----------- Sensitivity update ------------
+        % ----------- Subproblem sensitivity update ------------
         for i = 1:N
            
             blk = (i-1)*nw+1:i*nw;
             p_final = vertcat(Lam(blk),x0_opt);
             
-            [sol1,elapsedqp] = SolveLinSysOnline(Primal(:,i),Dual(i),p_init(:,i),p_final,par(i));
-            nlp_sol_t(k,i) = elapsedqp;
+            [sol1,elapsed] = SolveLinSysOnline(Primal(:,i),Dual(i),p_init(:,i),p_final,par(i));
+            nlp_sol_t(k,i) = elapsed;
             
             dPrimal(:,i) = sol1.dx;
             x_opt = [x_opt; Primal(:,i)+sol1.dx];
             p_init(:,i) = p_final;
+            L(i) = full(par(i).L(Primal(:,i)+sol1.dx,p_final));
         end
         
         Primal = Primal + dPrimal;
         NLP_flag(k)= 0;
         r_eps(k) = norm(full(par(i).Lx(Primal,p_final)));
-        AL(k) =  sum(full(par(i).L(Primal,p_final)));
+        AL(k) =  sum(L);
     end
     
     x0_opt0 = x0_opt;

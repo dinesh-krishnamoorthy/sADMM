@@ -1,5 +1,13 @@
 function y = MLP(u,w,nu,nn,ny)
-
+% Multilayer perceptron architechture
+%
+%   u  - inputs
+%   w  - parameters
+%   nu - no. of inputs
+%   nn - no. of neurons in the hidden layer
+%   ny - no. of outputs
+%   y - outputs
+%
 % Written by: Dinesh Krishnamoorthy, Apr 2020
 
 w1 = w(1:nu*nn);
