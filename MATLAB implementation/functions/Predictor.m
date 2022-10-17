@@ -1,4 +1,4 @@
-function [sol,elapsedqp] = SolveLinSysOnline(Primal,Dual,p_init,p_final,par)
+function [sol,elapsedqp] = Predictor(Primal,p_init,p_final,par)
 
 % Written by: Dinesh Krishnamoorthy, Apr 2020
 
@@ -16,6 +16,6 @@ tic
 sol.dx = full(sparse(M)\-sparse(N));
 elapsedqp = toc;
 
-assert(sum(isnan(sol.dx))==0,'Error: NaN detected in SolveLinSysOnline.')
+assert(sum(isnan(sol.dx))==0,'Error: NaN detected in PredictorStep.')
 end
 

@@ -12,6 +12,7 @@ par.Lpx = Function('Lpx',{w,p},{jacobian(jacobian(Lagr_func,p),w)},{'w','p'},{'L
 par.H = Function('H',{w,p},{jacobian(jacobian(Lagr_func,w),w)},{'w','p'},{'Lww'});
 par.Lx = Function('Lx',{w,p},{jacobian(Lagr_func,w)},{'w','p'},{'Lw'}); 
 par.L = Function('L',{w,p},{Lagr_func},{'w','p'},{'L'}); 
+par.Jx = Function('Jx',{w},{jacobian(par.J,w)},{'w'},{'Jx'}); 
 end
 
 

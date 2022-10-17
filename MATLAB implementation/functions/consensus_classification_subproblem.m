@@ -21,10 +21,11 @@ lbg = [];
 ubg = [];
 
 L = 0;
-
+J = 0;
 for i = 1:D
     I = indicator(y(i),nc);
     L = L - I'*log(MLP_sigmoid(u(i,:),x,nu,nn,nc));
+    J = J - I'*log(MLP_sigmoid(u(i,:),x,nu,nn,nc));
 end
 L =  L + rho/2*sum((x-x0 + lam).^2);
 
@@ -36,5 +37,5 @@ opts = struct('warn_initial_bounds',false, ...
 nlp = struct('x',x, 'p',vertcat(lam,x0),'f',L ,'g',[]);
 solver = nlpsol('solver', 'ipopt', nlp,opts);
 
-par = struct('w0',w0,'lbw',lbw,'ubw',ubw,'lbg',lbg, 'ubg',ubg,'nlp',nlp);
+par = struct('w0',w0,'lbw',lbw,'ubw',ubw,'lbg',lbg, 'ubg',ubg,'nlp',nlp,'J',J);
 par = PrepareLinSys(par);
